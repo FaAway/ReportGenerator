@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Class-Path: jul-to-slf4j-1.7.18.jar slf4j-api-1.7.18.jar logback-class
+ ic-1.1.6.jar jcl-over-slf4j-1.7.18.jar commons-lang3-3.4.jar logback-
+ core-1.1.6.jar
+Main-Class: ru.faraway.reportgenerator.Main
+
