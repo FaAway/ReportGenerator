@@ -23,7 +23,7 @@
         </encoder>
     </appender>
 
-    <logger name="ru.faraway.reportgenerator" level="error"/>
+    <logger name="ru.faraway.reportgenerator" level="info"/>
 
     <root level="error">
         <appender-ref ref="file"/>

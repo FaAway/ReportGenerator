@@ -24,8 +24,10 @@ public class TsvReader {
     private int linesReaded;
 
     public TsvReader(InputStreamReader in, List<Column> columns) throws IOException{
+
         reader = new BufferedReader(in);
         this.columns = columns;
+
         if (!readNextLine()) {
             LOG.error("File is empty");
             throw new EOFException("File is empty");
@@ -33,10 +35,12 @@ public class TsvReader {
     }
 
     public TsvReader(String fileName, List<Column> columns) throws IOException{
+
         this(new InputStreamReader(new FileInputStream(fileName), Settings.DEFAULT_CHARSET_NAME), columns);
     }
 
     public TsvReader(String fileName, Charset charset, List<Column> columns) throws IOException{
+
         this(new InputStreamReader(new FileInputStream(fileName), charset), columns);
     }
 
@@ -61,12 +65,14 @@ public class TsvReader {
     public String[] readDataLine()  {
         if (nextLine == null) readNextLine();
         String[] result = nextLine.split("\t");
+        nextLine = null;
+
         if (result.length != columns.size()) {
             String errMessage = String.format("Expected %d columns but found %d in line %d", columns.size(), result.length, linesReaded);
             LOG.error(errMessage);
             throw new RuntimeException(errMessage);
         }
-        nextLine = null;
+
         return result;
     }
 

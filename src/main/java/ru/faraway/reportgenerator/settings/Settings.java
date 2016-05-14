@@ -9,12 +9,15 @@ import java.util.List;
 
 /**
  * Created by FarAway on 12.05.2016.
+ *
+ * Java bean for XML loading and some constants
  */
 
 @XmlType(propOrder = { "page", "columns" }, name = "settings")
 @XmlRootElement
 public class Settings {
     public static final String DEFAULT_CHARSET_NAME = "UTF-16";
+    public static final boolean ALLOW_ADAPTIVE_COLUMN_WIDTH = true;
 
     private Page page;
 
@@ -40,6 +43,7 @@ public class Settings {
 
     @Override
     public String toString() {
+
         StringBuilder sb = new StringBuilder();
         sb.append("Objects created from XML:\n")
           .append(String.format("Width: %s, Height: %s\n", this.getPage().getWidth(), this.getPage().getHeight()));

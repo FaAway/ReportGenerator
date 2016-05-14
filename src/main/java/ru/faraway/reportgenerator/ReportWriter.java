@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.faraway.reportgenerator.settings.Column;
 import ru.faraway.reportgenerator.settings.Settings;
+import ru.faraway.reportgenerator.utils.PatternUtils;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
@@ -85,8 +86,10 @@ public class ReportWriter {
     // Cached vars. Header renders without last line separator at the end
     private String header = "";
     private int headerLinesCount;
+
     /*| header | header | header | header | header | header |\n*/
     private void printHeader() throws IOException {
+
         if (header.isEmpty()) {
             int columnsCount = settings.getColumns().size();
             String[] headerData = new String[columnsCount];
@@ -106,6 +109,7 @@ public class ReportWriter {
 
     // Cached var
     private String dottedLineSeparator = "";
+
     /* \n--------------------------------------------------------*/
     private void printDottedLineSeparator() throws IOException {
         if (dottedLineSeparator.isEmpty())
@@ -128,9 +132,9 @@ public class ReportWriter {
     private ArrayList<String[]> spliceDataToFitColumnWidth(String... dataLine) {
 
         ArrayList<String[]> trimmedDataLines = new ArrayList<>();
-
         List<Column> columns = settings.getColumns();
         boolean fitInSingleLine;
+
         do {
             fitInSingleLine = true; //assumption
             String[] trimmedDataLine = new String[columns.size()];
@@ -155,22 +159,24 @@ public class ReportWriter {
     }
 
     private int getCutIndex(String data, int width) {
+
         if (data.length() <= width) {
             LOG.error("Nothing to cut. There is enough width for data");
             throw new IllegalArgumentException("Nothing to cut. There is enough width for data");
         }
 
         String firstPart = data.substring(0, width);
-        boolean wordCutted = data.substring(width - 1, width + 1).matches("\\w{2}");
+        boolean wordCutted = data.substring(width - 1, width + 1).matches(PatternUtils.unicode_charclass("\\w{2}"));
         if (!wordCutted) return width;
         else {
-            String s = firstPart.replaceAll("\\W"," ");
+            String s = firstPart.replaceAll(PatternUtils.unicode_charclass("\\W")," ");
             int separator = s.lastIndexOf(" ");
             return separator != -1 ? separator + 1 : width;
         }
     }
 
     private String renderSingleLine(String[] dataLine) {
+
         StrBuilder textline = new StrBuilder("|");
         for (int i = 0; i < settings.getColumns().size(); i++) {
             Column column = settings.getColumns().get(i);

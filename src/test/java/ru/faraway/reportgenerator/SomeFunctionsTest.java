@@ -4,11 +4,14 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Test;
+import ru.faraway.reportgenerator.utils.PatternUtils;
 
 /**
  * Created by FarAway on 13.05.2016.
+ *
+ * Tests for line-wrapping
  */
-public class ReportWriterTest {
+public class SomeFunctionsTest {
 
     @Test
     public void testGetCutIndex(){
@@ -46,15 +49,17 @@ public class ReportWriterTest {
         return new ImmutablePair<>(left, right);
     }
 
+    // Copy of private function in class ReportWriter for tests
     private int getCutIndex(String data, int width) {
         if (data.length() <= width) {
             throw new IllegalArgumentException("Nothing to cut. There is enough width for data");
         }
+
         String firstPart = data.substring(0, width);
-        boolean wordCutted = data.substring(width - 1, width + 1).matches("\\w{2}");
+        boolean wordCutted = data.substring(width - 1, width + 1).matches(PatternUtils.unicode_charclass("\\w{2}"));
         if (!wordCutted) return width;
         else {
-            String s = firstPart.replaceAll("\\W"," ");
+            String s = firstPart.replaceAll(PatternUtils.unicode_charclass("\\W")," ");
             int separator = s.lastIndexOf(" ");
             return separator != -1 ? separator + 1 : width;
         }
