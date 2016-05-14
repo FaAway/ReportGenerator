@@ -2,6 +2,8 @@ package ru.faraway.reportgenerator;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.faraway.reportgenerator.settings.Column;
 import ru.faraway.reportgenerator.settings.Settings;
 
@@ -20,43 +22,78 @@ import java.util.List;
  */
 public class ReportWriter {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ReportWriter.class);
+
     private BufferedWriter writer;
     private Settings settings;
-    // Header renders without last line separator
-    private String header = "";
-    private String dottedLineSeparator = "";
-    private int headerLinesCount;
-    //start for 0
-    private int currentLine;
-    //start for 0
-    private int currentPage;
+    private int currentLine = 0;
+    private int currentPage = 0;
 
-    public ReportWriter(String filename, Settings settings) throws IOException{
+    public ReportWriter(String filename, Settings settings) {
         this(filename, Charset.forName(Settings.DEFAULT_CHARSET_NAME), settings);
     }
 
-    public ReportWriter(String filename, Charset charset, Settings settings) throws IOException {
+    public ReportWriter(String filename, Charset charset, Settings settings) {
+        try {
         writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), charset)) {
             @Override
-            public void write(String s) throws IOException {
-                super.write(s);
+            public void write(String s) {
+                try {
+                    super.write(s);
+                } catch (IOException e) {
+                    LOG.error("Can't write to: \"" + filename + "\"", e);
+                    throw new RuntimeException("Can't write to: \"" + filename + "\"");
+                }
                 int lines = s.length() / settings.getPage().getWidth();
                 currentLine += lines;
             }
         };
+        } catch (IOException e) {
+            LOG.error(e.getMessage(), e);
+            throw new RuntimeException();
+        }
         this.settings = settings;
-        renderHeader();
-        renderDottedLineSeparator();
     }
 
-    private void renderHeader() {
+    public void writeFormattedDataLine(String[] dataLine) throws IOException {
+
+        ArrayList<String[]> trimmedDataLines = spliceDataToFitColumnWidth(dataLine);
+
+        if (!isThereEnoughSpaceFor(trimmedDataLines.size()))
+            printPageSeparator();
+
+        if (currentLine == 0)
+            printHeader();
+
+        printDottedLineSeparator();
+        for (String[] trimmedDataLine : trimmedDataLines)
+            printSingleLine(trimmedDataLine);
+    }
+
+    public void close() {
+        try {
+            writer.close();
+        } catch (IOException e) {
+            LOG.error("Can't close file", e);
+        }
+    }
+
+    private boolean isThereEnoughSpaceFor(int linesCount) {
+        return currentLine + linesCount + 1 <= settings.getPage().getHeight(); //  "+ 1" - height of DottedLineSeparator
+    }
+
+    // Cached vars. Header renders without last line separator at the end
+    private String header = "";
+    private int headerLinesCount;
+    /*| header | header | header | header | header | header |\n*/
+    private void printHeader() throws IOException {
         if (header.isEmpty()) {
             int columnsCount = settings.getColumns().size();
             String[] headerData = new String[columnsCount];
             for (int i = 0; i < columnsCount; i++) {
                 headerData[i] = settings.getColumns().get(i).getTitle();
             }
-            ArrayList<String[]> trimmedHeaderLines = spliceDataToFitWidth(headerData);
+            ArrayList<String[]> trimmedHeaderLines = spliceDataToFitColumnWidth(headerData);
             headerLinesCount = trimmedHeaderLines.size();
             for (int i = 0; i < trimmedHeaderLines.size(); i++) {
                 header += renderSingleLine(trimmedHeaderLines.get(i));
@@ -64,34 +101,31 @@ public class ReportWriter {
                     header += System.lineSeparator();
             }
         }
+        writer.write(header);
     }
 
-    private void renderDottedLineSeparator() {
-        dottedLineSeparator = StringUtils.leftPad("", settings.getPage().getWidth(), "-");
+    // Cached var
+    private String dottedLineSeparator = "";
+    /* \n--------------------------------------------------------*/
+    private void printDottedLineSeparator() throws IOException {
+        if (dottedLineSeparator.isEmpty())
+            dottedLineSeparator = StringUtils.leftPad("", settings.getPage().getWidth(), "-");
+        writer.write(System.lineSeparator() + dottedLineSeparator);
     }
 
-    public void writeNext(String[] dataLine) {
-        try {
-            ArrayList<String[]> trimmedDataLines = spliceDataToFitWidth(dataLine);
-            if (trimmedDataLines.size()+ 1 + currentLine > settings.getPage().getHeight()) {
-                writer.write(System.lineSeparator() + "~" + System.lineSeparator());
-                currentLine = 0;
-                currentPage++;
-            }
-
-            if (currentLine == 0)
-                writer.write(header);
-
-            writer.write(System.lineSeparator() + dottedLineSeparator);
-            for (String[] trimmedDataLine : trimmedDataLines) {
-                writer.write(System.lineSeparator() + renderSingleLine(trimmedDataLine));
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    /* \n| data   | data   | data   | data   | data   | data   |*/
+    private void printSingleLine(String[] dataLine) throws IOException{
+        writer.write(System.lineSeparator() + renderSingleLine(dataLine));
     }
 
-    private ArrayList<String[]> spliceDataToFitWidth(String... dataLine) {
+    /* \n ~ \n                                                  */
+    private void printPageSeparator() throws IOException {
+        writer.write(System.lineSeparator() + "~" + System.lineSeparator());
+        currentLine = 0;
+        currentPage++;
+    }
+
+    private ArrayList<String[]> spliceDataToFitColumnWidth(String... dataLine) {
 
         ArrayList<String[]> trimmedDataLines = new ArrayList<>();
 
@@ -108,10 +142,10 @@ public class ReportWriter {
                 if (data == null || data.length() <= column.getWidth())
                     trimmedDataLine[i] = data;
                 else {
-                    fitInSingleLine = false;
-                    int cutpoint = getCutIndex(data, column.getWidth());
-                    trimmedDataLine[i] = data.substring(0, cutpoint);
-                    overheadDataLine[i] = data.substring(cutpoint).trim();
+                    int cutIndex = getCutIndex(data, column.getWidth());
+                    trimmedDataLine[i] = data.substring(0, cutIndex);
+                    overheadDataLine[i] = data.substring(cutIndex).trim();
+                    fitInSingleLine = !(overheadDataLine[i].length() > 0);
                 }
             }
             trimmedDataLines.add(trimmedDataLine);
@@ -121,9 +155,12 @@ public class ReportWriter {
     }
 
     private int getCutIndex(String data, int width) {
-        if (data.length() <= width) throw new IllegalArgumentException("Nothing to cut. There is enough width for data");
-        String firstPart = data.substring(0, width);
+        if (data.length() <= width) {
+            LOG.error("Nothing to cut. There is enough width for data");
+            throw new IllegalArgumentException("Nothing to cut. There is enough width for data");
+        }
 
+        String firstPart = data.substring(0, width);
         boolean wordCutted = data.substring(width - 1, width + 1).matches("\\w{2}");
         if (!wordCutted) return width;
         else {
@@ -143,13 +180,5 @@ public class ReportWriter {
             else textline.append(StringUtils.rightPad("", 1 + column.getWidth()) + " |");
         }
         return textline.toString();
-    }
-
-    public void close() {
-        try {
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 }

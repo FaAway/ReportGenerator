@@ -1,5 +1,7 @@
 package ru.faraway.reportgenerator;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.faraway.reportgenerator.settings.Column;
 import ru.faraway.reportgenerator.settings.Settings;
 
@@ -14,6 +16,8 @@ import java.util.List;
  */
 public class TsvReader {
 
+    private static final Logger LOG = LoggerFactory.getLogger(TsvReader.class);
+
     private BufferedReader reader;
     private List<Column> columns;
     private String nextLine;
@@ -22,7 +26,10 @@ public class TsvReader {
     public TsvReader(InputStreamReader in, List<Column> columns) throws IOException{
         reader = new BufferedReader(in);
         this.columns = columns;
-        if (!readNextLine()) throw new EOFException("File is empty");
+        if (!readNextLine()) {
+            LOG.error("File is empty");
+            throw new EOFException("File is empty");
+        }
     }
 
     public TsvReader(String fileName, List<Column> columns) throws IOException{
@@ -54,7 +61,11 @@ public class TsvReader {
     public String[] readDataLine()  {
         if (nextLine == null) readNextLine();
         String[] result = nextLine.split("\t");
-        if (result.length != columns.size()) throw new RuntimeException(String.format("Expected %d columns but found %d in line %d", columns.size(), result.length, linesReaded));
+        if (result.length != columns.size()) {
+            String errMessage = String.format("Expected %d columns but found %d in line %d", columns.size(), result.length, linesReaded);
+            LOG.error(errMessage);
+            throw new RuntimeException(errMessage);
+        }
         nextLine = null;
         return result;
     }
@@ -63,7 +74,7 @@ public class TsvReader {
         try {
             reader.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("Can't close file", e);
         }
     }
 }

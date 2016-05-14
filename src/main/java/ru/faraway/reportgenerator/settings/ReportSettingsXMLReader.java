@@ -1,16 +1,19 @@
 package ru.faraway.reportgenerator.settings;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import java.io.InputStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Created by FarAway on 12.05.2016.
  */
 public class ReportSettingsXMLReader {
+    private static final Logger LOG = LoggerFactory.getLogger(ReportSettingsXMLReader.class);
+
     public Settings unmarshall(InputStream xml) {
         Settings settings = null;
         try {
@@ -21,8 +24,7 @@ public class ReportSettingsXMLReader {
 
 
         } catch (JAXBException exception) {
-            Logger.getLogger(ReportSettingsXMLReader.class.getName()).
-                    log(Level.SEVERE, "unmarshall(InputStream xml) threw JAXBException", exception);
+            LOG.error("unmarshall(InputStream xml) threw JAXBException", exception);
         }
         return settings;
     }
