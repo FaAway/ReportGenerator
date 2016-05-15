@@ -56,7 +56,7 @@ public class ReportWriter {
         this.settings = settings;
     }
 
-    public void writeFormattedDataLine(String[] dataLine) throws IOException {
+    public void writeFormattedDataLine(String[] dataLine) {
 
         ArrayList<String[]> trimmedDataLines = spliceDataToFitColumnWidth(dataLine);
 
@@ -72,11 +72,8 @@ public class ReportWriter {
     }
 
     public void close() {
-        try {
-            writer.close();
-        } catch (IOException e) {
-            LOG.error("Can't close file", e);
-        }
+        try { writer.close();}
+        catch (IOException e) { LOG.error("Can't close file", e);}
     }
 
     private boolean isThereEnoughSpaceFor(int linesCount) {
@@ -88,7 +85,7 @@ public class ReportWriter {
     private int headerLinesCount;
 
     /*| header | header | header | header | header | header |\n*/
-    private void printHeader() throws IOException {
+    private void printHeader() {
 
         if (header.isEmpty()) {
             int columnsCount = settings.getColumns().size();
@@ -104,29 +101,33 @@ public class ReportWriter {
                     header += System.lineSeparator();
             }
         }
-        writer.write(header);
+        write(header);
     }
 
     // Cached var
     private String dottedLineSeparator = "";
 
     /* \n--------------------------------------------------------*/
-    private void printDottedLineSeparator() throws IOException {
+    private void printDottedLineSeparator() {
         if (dottedLineSeparator.isEmpty())
             dottedLineSeparator = StringUtils.leftPad("", settings.getPage().getWidth(), "-");
-        writer.write(System.lineSeparator() + dottedLineSeparator);
+        write(System.lineSeparator() + dottedLineSeparator);
     }
 
     /* \n| data   | data   | data   | data   | data   | data   |*/
-    private void printSingleLine(String[] dataLine) throws IOException{
-        writer.write(System.lineSeparator() + renderSingleLine(dataLine));
+    private void printSingleLine(String[] dataLine) {
+        write(System.lineSeparator() + renderSingleLine(dataLine));
     }
 
     /* \n ~ \n                                                  */
-    private void printPageSeparator() throws IOException {
-        writer.write(System.lineSeparator() + "~" + System.lineSeparator());
+    private void printPageSeparator() {
+        write(System.lineSeparator() + "~" + System.lineSeparator());
         currentLine = 0;
         currentPage++;
+    }
+
+    private void write(String s) {
+        try { writer.write(s);} catch (IOException e) { /* already catched in class wrapper */ }
     }
 
     private ArrayList<String[]> spliceDataToFitColumnWidth(String... dataLine) {
@@ -143,6 +144,7 @@ public class ReportWriter {
             for (int i = 0; i < columns.size(); i++) {
                 Column column = columns.get(i);
                 String data = dataLine[i];
+
                 if (data == null || data.length() <= column.getWidth())
                     trimmedDataLine[i] = data;
                 else {
@@ -154,7 +156,9 @@ public class ReportWriter {
             }
             trimmedDataLines.add(trimmedDataLine);
             if (!fitInSingleLine) dataLine = overheadDataLine;
+
         } while (!fitInSingleLine);
+
         return trimmedDataLines;
     }
 
@@ -166,7 +170,9 @@ public class ReportWriter {
         }
 
         String firstPart = data.substring(0, width);
+
         boolean wordCutted = data.substring(width - 1, width + 1).matches(PatternUtils.unicode_charclass("\\w{2}"));
+
         if (!wordCutted) return width;
         else {
             String s = firstPart.replaceAll(PatternUtils.unicode_charclass("\\W")," ");

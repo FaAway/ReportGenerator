@@ -20,7 +20,7 @@ import java.nio.charset.Charset;
 public class Main {
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
-    public static void main(String[] args) throws IOException{
+    public static void main(String[] args) throws IOException {
         if (args.length != 3) {
             LOG.error("Please provide 3 program arguments. For example: settings.xml source-data.tsv example-report.txt");
             return;
@@ -30,6 +30,7 @@ public class Main {
         Settings settings = ReportSettingsXMLReader.getSettings(settingsPathName);
 
         String sourceDataPathName = args[1];
+
         TsvReader tsvReader = new TsvReader(sourceDataPathName, Charset.forName(Settings.DEFAULT_CHARSET_NAME), settings.getColumns());
 
         String outputReportPathName = args[2];
